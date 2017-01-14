@@ -10,26 +10,28 @@ alias CLong = LibC::Long
 alias CFloat = LibC::Float
 alias CDouble = LibC::Double
 alias CChar = LibC::Char
+alias CUChar = LibC::UChar
 alias MP_Handle = LibC::Int
 alias Size = CLong
-
+alias Offset = CInt
 fun plain_error_str = mpg123_plain_strerror(code : CInt) : CChar*
-                                                           fun error_str = mpg123_strerror(hndl : MP_Handle) : CChar*
-                                                                                                               fun init = mpg123_init() : CInt
+fun error_str = mpg123_strerror(hndl : MP_Handle) : CChar*
+fun init = mpg123_init() : CInt
 fun exit = mpg123_exit() : CInt
 fun decoders = mpg123_decoders() : CChar**
-                                   fun supported_decoders = mpg123_supported_decoders() : CChar**
-                                                                                          fun current_decoder = mpg123_current_decoder(handle : MP_Handle*) : CChar*
-                                                                                                                                                              fun new = mpg123_new(decoder : CChar*, err : CInt*) : MP_Handle*
-                                                                                                                                                                                                                    fun open = mpg123_open(MP_Handle*, path : CChar*) : CInt
+fun supported_decoders = mpg123_supported_decoders() : CChar**
+fun current_decoder = mpg123_current_decoder(handle : MP_Handle*) : CChar*
+fun new = mpg123_new(decoder : CChar*, err : CInt*) : MP_Handle*
+fun open = mpg123_open(MP_Handle*, path : CChar*) : CInt
 fun read = mpg123_read(MP_Handle*, outmemory : CChar*, outmemsize : Size, done : Size*) : CInt
 fun encsize =  mpg123_encsize(encoding : CInt) : CInt
-
+fun feed = mpg123_feed(MP_Handle*, CUChar*, Size)
 fun delete = mpg123_delete(mh : MP_Handle*) : Void
 fun param = mpg123_param(mh : MP_Handle*, type : MP_Parms, value : CLong, fvalue : CDouble) : Void
 fun buf_size = mpg123_outblock(MP_Handle*) : Size
 fun get_format = mpg123_getformat(MP_Handle*, rate : CLong*, channels : CInt*, encoding : CInt*) : CInt
-
+fun decode_frame = mpg123_decode_frame(MP_Handle*, Offset* , CUChar** , Size* );
+#int mpg123_decode_frame(mpg123_handle *mh, off_t* num, unsigned char** audio, size_t* 	bytes)
 enum MP_Parms
 MP_VERBOSE = 0
 MP_FLAGS
