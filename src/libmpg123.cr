@@ -185,6 +185,18 @@ module Libmpg123
       LibMP.read(@handle, bufp, buf_size, donep)
     end
 
+    #    fun feed = mpg123_feed(buf, size)
+
+    def feed(buf, size)
+      LibMP.feed(@handle, buf, size)
+    end
+
+    #int mpg123_decode_frame(mpg123_handle *mh, off_t* num, unsigned char** audio, size_t* 	bytes)
+
+    def decode_frame(num, audio, bytes)
+      LibMP.decode_frame(@handle, num, audio, bytes)
+    end
+   
     def get_format(ratep, channelsp, encodingp)
       @error = LibMP.get_format(@handle, ratep, channelsp, encodingp)
     end
