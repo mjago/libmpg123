@@ -13,7 +13,7 @@ lib LibMP
   alias CUChar = LibC::UChar
   alias MP_Handle = LibC::Int
   alias Size = CLong
-  alias Offset = CInt
+  alias Offset = CLong
 
   fun plain_error_str = mpg123_plain_strerror(code : CInt) : CChar*
   fun error_str = mpg123_strerror(hndl : MP_Handle) : CChar*
@@ -35,6 +35,17 @@ lib LibMP
   fun decode_frame = mpg123_decode_frame(MP_Handle*, Offset*, CUChar**, Size*) : CInt
   fun decode = mpg123_decode(MP_Handle*, CUChar*, Size, CUChar*, Size, Size*) : CInt
   fun meta_free = mpg123_meta_free(MP_Handle*) : CInt
+  fun byte_offset = mpg123_tell_stream(MP_Handle*) : Offset
+  fun sample_offset = mpg123_tell(MP_Handle*) : Offset
+  fun time_frame = mpg123_timeframe(MP_Handle*, sec : CDouble) : Offset
+  fun frame_position = mpg123_framepos(MP_Handle*) : Offset
+  fun seek_sample = mpg123_seek(MP_Handle*, sampleoff : Offset, whence : CInt) : Offset
+
+  enum SEEK
+    Set = 0
+    Cur = 1
+    End = 2
+  end
 
   enum MP_Parms
     MP_VERBOSE   = 0
@@ -74,10 +85,10 @@ lib LibMP
   end
 
   enum MP_Param_RVA
-    MP_RVA_OFF   = 0
-    MP_RVA_MIX   = 1
-    MP_RVA_ALBUM = 2
-    MP_RVA_MAX   = MP_RVA_ALBUM
+    OFF   = 0
+    MIX   = 1
+    ALBUM = 2
+    MAX   = ALBUM
   end
 
   enum MP_Errors
@@ -191,8 +202,6 @@ module Libmpg123
       LibMP.read(@handle, bufp, buf_size, donep)
     end
 
-    #    fun feed = mpg123_feed(buf, size)
-
     def feed(buf, size)
       LibMP.feed(@handle, buf, size)
     end
@@ -227,6 +236,36 @@ module Libmpg123
 
     def exit
       LibMP.exit
+    end
+
+    def time_frame(seconds)
+      LibMP.time_frame(@handle, seconds)
+    end
+
+    def frame_position
+      LibMP.frame_position(@handle)
+    end
+
+    def byte_offset
+      LibMP.byte_offset(@handle)
+    end
+
+    def sample_offset
+      LibMP.sample_offset(@handle)
+    end
+
+    def seek_sample(smp_offset, whence = :seek_set)
+      seek = case whence
+             when :seek_set
+               LibMP::SEEK::Set
+             when :seek_cur
+               LibMP::SEEK::Cur
+             when :seek_end
+               LibMP::SEEK::End
+             else
+               LibMP::SEEK::Set
+             end
+      LibMP.seek_sample(@handle, smp_offset, seek)
     end
   end
 end
