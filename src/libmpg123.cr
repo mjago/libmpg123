@@ -29,7 +29,7 @@ lib LibMPG
   fun feed = mpg123_feed(MPG_Handle*, CUChar*, Size) : CInt
   fun open_feed = mpg123_open_feed(MPG_Handle*) : CInt
   fun delete = mpg123_delete(mh : MPG_Handle*) : Void
-  fun param = mpg123_param(mh : MPG_Handle*, type : PARMS, value : CLong, fvalue : CDouble) : Void
+  fun param = mpg123_param(mh : MPG_Handle*, type : PARMS, value : CLong, fvalue : CDouble) : CInt
   fun buf_size = mpg123_outblock(MPG_Handle*) : Size
   fun get_format = mpg123_getformat(MPG_Handle*, rate : CLong*, channels : CInt*, encoding : CInt*) : CInt
   fun decode_frame = mpg123_decode_frame(MPG_Handle*, Offset*, CUChar**, Size*) : CInt
@@ -39,8 +39,9 @@ lib LibMPG
   fun sample_offset = mpg123_tell(MPG_Handle*) : Offset
   fun time_frame = mpg123_timeframe(MPG_Handle*, sec : CDouble) : Offset
   fun frame_position = mpg123_framepos(MPG_Handle*) : Offset
-  fun seek_sample = mpg123_seek(MPG_Handle*, sampleoff : Offset, whence : CInt) : Offset
-
+  fun seek = mpg123_seek(MPG_Handle*, sampleoff : Offset, whence : CInt) : Offset
+  fun feed_seek = mpg123_feedseek(MPG_Handle*, sampleoff : Offset, whence : CInt, input_offset : Offset*)
+  fun length = mpg123_length(MPG_Handle*) : Offset
   enum SEEK
     Set = 0
     Cur = 1
@@ -48,17 +49,25 @@ lib LibMPG
   end
 
   enum PARMS
-    VERBOSE   = 0
-    FLAGS     = 0
-    ADD_FLAGS    FORCE_RATE
-    DOWN_SAMPLE    RVA
-    DOWNSPEED    UPSPEED
-    START_FRAME    DECODE_FRAMES
-    ICY_INTERVAL    OUTSCALE
-    TIMEOUT    REMOVE_FLAGS
-    RESYNC_LIMIT    INDEX_SIZE
-    PREFRAMES    FEEDPOOL
-    FEEDBUFFER
+    VERBOSE       =  0
+    FLAGS         =  1
+    ADD_FLAGS     =  2
+    FORCE_RATE    =  3
+    DOWN_SAMPLE   =  4
+    RVA           =  5
+    DOWNSPEED     =  6
+    UPSPEED       =  7
+    START_FRAME   =  8
+    DECODE_FRAMES =  9
+    ICY_INTERVAL  = 10
+    OUTSCALE      = 11
+    TIMEOUT       = 12
+    REMOVE_FLAGS  = 13
+    RESYNC_LIMIT  = 14
+    INDEX_SIZE    = 15
+    PREFRAMES     = 16
+    FEEDPOOL      = 17
+    FEEDBUFFER    = 18
   end
 
   enum ParamFlags
@@ -254,18 +263,91 @@ module Libmpg123
       LibMPG.sample_offset(@handle)
     end
 
-    def seek_sample(smp_offset, whence = :seek_set)
-      seek = case whence
-             when :seek_set
-               LibMPG::SEEK::Set
-             when :seek_cur
-               LibMPG::SEEK::Cur
-             when :seek_end
-               LibMPG::SEEK::End
-             else
-               LibMPG::SEEK::Set
-             end
-      LibMPG.seek_sample(@handle, smp_offset, seek)
+    def seek(smp_offset, whence = :seek_set)
+      wh = case whence
+           when :seek_cur
+             LibMPG::SEEK::Cur
+           when :seek_end
+             LibMPG::SEEK::End
+           else
+             LibMPG::SEEK::Set
+           end
+      LibMPG.seek(@handle, smp_offset, wh)
+    end
+
+    def feed_seek(smp_offset, whence, inp_offset)
+      wh = case whence
+           when :seek_cur
+             LibMPG::SEEK::Cur
+           when :seek_end
+             LibMPG::SEEK::End
+           else
+             LibMPG::SEEK::Set
+           end
+      LibMPG.feed_seek(@handle, smp_offset, wh, inp_offset)
+    end
+
+    def length
+      LibMPG.length(@handle)
+    end
+
+    def param(param, value, fvalue = 0.0)
+      prm = parms(param)
+      val = param_flag(value)
+      LibMPG.param(@handle, prm, val, fvalue)
+    end
+
+    private def parms(prm)
+      case prm
+      when :verbose      ; LibMPG::PARMS::VERBOSE
+      when :flags        ; LibMPG::PARMS::FLAGS
+      when :add_flags    ; LibMPG::PARMS::ADD_FLAGS
+      when :force_rate   ; LibMPG::PARMS::FORCE_RATE
+      when :down_sample  ; LibMPG::PARMS::DOWN_SAMPLE
+      when :rva          ; LibMPG::PARMS::RVA
+      when :downspeed    ; LibMPG::PARMS::DOWNSPEED
+      when :upspeed      ; LibMPG::PARMS::UPSPEED
+      when :start_frame  ; LibMPG::PARMS::START_FRAME
+      when :decode_frames; LibMPG::PARMS::DECODE_FRAMES
+      when :icy_interval ; LibMPG::PARMS::ICY_INTERVAL
+      when :outscale     ; LibMPG::PARMS::OUTSCALE
+      when :timeout      ; LibMPG::PARMS::TIMEOUT
+      when :remove_flags ; LibMPG::PARMS::REMOVE_FLAGS
+      when :resync_limit ; LibMPG::PARMS::RESYNC_LIMIT
+      when :index_size   ; LibMPG::PARMS::INDEX_SIZE
+      when :preframes    ; LibMPG::PARMS::PREFRAMES
+      when :feedpool     ; LibMPG::PARMS::FEEDPOOL
+      when :feedbuffer   ; LibMPG::PARMS::FEEDBUFFER
+      else
+        raise "Error: invalid param in LibMPG!"
+      end
+    end
+
+    private def param_flag(name)
+      case name
+      when :force_mono         ; LibMPG::ParamFlags::FORCE_MONO
+      when :mono_left          ; LibMPG::ParamFlags::MONO_LEFT
+      when :mono_right         ; LibMPG::ParamFlags::MONO_RIGHT
+      when :mono_mix           ; LibMPG::ParamFlags::MONO_MIX
+      when :force_stereo       ; LibMPG::ParamFlags::FORCE_STEREO
+      when :force_8bit         ; LibMPG::ParamFlags::FORCE_8BIT
+      when :quiet              ; LibMPG::ParamFlags::QUIET
+      when :gapless            ; LibMPG::ParamFlags::GAPLESS
+      when :no_resync          ; LibMPG::ParamFlags::NO_RESYNC
+      when :seekbuffer         ; LibMPG::ParamFlags::SEEKBUFFER
+      when :fuzzy              ; LibMPG::ParamFlags::FUZZY
+      when :force_float        ; LibMPG::ParamFlags::FORCE_FLOAT
+      when :plain_id3text      ; LibMPG::ParamFlags::PLAIN_ID3TEXT
+      when :ignore_streamlength; LibMPG::ParamFlags::IGNORE_STREAMLENGTH
+      when :skip_id3v2         ; LibMPG::ParamFlags::SKIP_ID3V2
+      when :ignore_infoframe   ; LibMPG::ParamFlags::IGNORE_INFOFRAME
+      when :auto_resample      ; LibMPG::ParamFlags::AUTO_RESAMPLE
+      when :picture            ; LibMPG::ParamFlags::PICTURE
+      when :no_peek_end        ; LibMPG::ParamFlags::NO_PEEK_END
+      when :force_seekable     ; LibMPG::ParamFlags::FORCE_SEEKABLE
+      else
+        raise "Error: Invalid param_flag in LibMPG!"
+      end
     end
   end
 end
